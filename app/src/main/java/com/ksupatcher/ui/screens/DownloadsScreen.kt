@@ -1,16 +1,14 @@
 package com.ksupatcher.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ksupatcher.data.DownloadState
 import com.ksupatcher.viewmodel.KsuVariant
@@ -22,11 +20,25 @@ fun DownloadsScreen(
     onDownloadKsud: (KsuVariant) -> Unit,
     onDownloadMagiskboot: () -> Unit
 ) {
+    val scrollState = rememberScrollState()
+
     Column(
-        modifier = Modifier.fillMaxSize().padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp)
+            .verticalScroll(scrollState),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Text("Downloads", style = MaterialTheme.typography.headlineMedium)
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Downloads",
+            style = MaterialTheme.typography.headlineLarge.copy(
+                fontWeight = FontWeight.Bold
+            ),
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
         DownloadCard(
             title = "ksud (KernelSU)",
             state = state.ksuDownload,
@@ -42,6 +54,8 @@ fun DownloadsScreen(
             state = state.magiskbootDownload,
             onDownload = onDownloadMagiskboot
         )
+
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -51,21 +65,64 @@ private fun DownloadCard(
     state: DownloadState,
     onDownload: () -> Unit
 ) {
-    Card {
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                title, 
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
             if (state.isDownloading) {
-                CircularProgressIndicator()
-                Text("Progress: ${state.progress}%")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 3.dp
+                    )
+                    Text(
+                        text = "Downloading... ${state.progress}%",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                LinearProgressIndicator(
+                    progress = state.progress / 100f,
+                    modifier = Modifier.fillMaxWidth().height(4.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+                )
             } else {
-                state.filePath?.let { Text("Saved to: $it") }
-                state.error?.let { Text("Error: $it") }
-            }
-            Button(onClick = onDownload) {
-                Text(if (state.isDownloading) "Downloading" else "Download")
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    state.filePath?.let { 
+                        Text("Saved to:", style = MaterialTheme.typography.labelMedium)
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) 
+                    }
+                    state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
+                    if (state.filePath == null && state.error == null) {
+                        Text("Not installed yet.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Button(
+                    onClick = onDownload,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text(if (state.filePath != null) "Redownload" else "Download", fontWeight = FontWeight.Bold)
+                }
             }
         }
     }

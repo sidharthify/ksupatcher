@@ -3,17 +3,29 @@ package com.ksupatcher.ui.screens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ksupatcher.viewmodel.KsuVariant
 import com.ksupatcher.viewmodel.UiState
@@ -41,30 +53,39 @@ fun PatchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(horizontal = 20.dp)
             .verticalScroll(scrollState),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        Spacer(modifier = Modifier.height(24.dp))
+        
         Text(
-            text = "Patch Configuration",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
+            text = "Patch Image",
+            style = MaterialTheme.typography.headlineLarge.copy(
+                fontWeight = FontWeight.Bold
+            ),
+            color = MaterialTheme.colorScheme.onBackground
         )
 
+        // Variant Selection
         Card(
+            shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            )
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(20.dp)) {
                 Text(
                     text = "KernelSU Variant",
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = 12.dp)
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     VariantButton(
                         text = "Official (KSU)",
@@ -82,92 +103,162 @@ fun PatchScreen(
             }
         }
 
+        // File Selection Section
         Text(
-            text = "Files",
-            style = MaterialTheme.typography.titleMedium,
+            text = "Required Files",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(top = 8.dp)
         )
 
-        FileSelector(
-            label = "Boot Image",
-            fileName = patch.bootImageName,
-            placeholder = "Select boot.img",
-            onSelect = { bootPicker.launch(arrayOf("application/octet-stream", "image/*")) }
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            FileSelector(
+                label = "Boot Image",
+                fileName = patch.bootImageName,
+                placeholder = "Select boot.img",
+                onSelect = { bootPicker.launch(arrayOf("application/octet-stream", "image/*")) }
+            )
 
-        FileSelector(
-            label = "Kernel Module (Auto-downloads if not selected)",
-            fileName = patch.moduleName,
-            placeholder = "Optional: Select custom kernelsu.ko",
-            onSelect = { modulePicker.launch(arrayOf("application/octet-stream")) }
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        if (patch.isPatching) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                Text(
-                    text = patch.status ?: "Processing...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-            }
-        } else {
-            Button(
-                onClick = onRunPatch,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Text("Start Patching")
-            }
-
-            if (!patch.status.isNullOrBlank()) {
-                Text(
-                    text = patch.status,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (patch.status.contains("failed", ignoreCase = true))
-                        MaterialTheme.colorScheme.error
-                    else
-                        MaterialTheme.colorScheme.primary
-                )
-            }
+            FileSelector(
+                label = "Kernel Module",
+                fileName = patch.moduleName,
+                placeholder = "Optional: custom kernelsu.ko",
+                onSelect = { modulePicker.launch(arrayOf("application/octet-stream")) }
+            )
         }
 
-        if (!patch.lastCommand.isNullOrBlank() || !patch.lastOutput.isNullOrBlank()) {
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Status & Action
+        AnimatedVisibility(
+            visible = patch.isPatching,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
             Card(
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF0E111A),
-                    contentColor = Color(0xFFE7EAF3)
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text("Output Log", style = MaterialTheme.typography.labelMedium, color = Color(0xFFE7EAF3))
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                Column(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Text(
+                        text = patch.status ?: "Processing...",
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = !patch.isPatching,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(
+                    onClick = onRunPatch,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text(
+                        text = "Start Patching",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+
+                if (!patch.status.isNullOrBlank()) {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (patch.status.contains("failed", ignoreCase = true))
+                                MaterialTheme.colorScheme.errorContainer
+                            else
+                                MaterialTheme.colorScheme.tertiaryContainer
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = patch.status,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                            color = if (patch.status.contains("failed", ignoreCase = true))
+                                MaterialTheme.colorScheme.onErrorContainer
+                            else
+                                MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Output Log Console
+        AnimatedVisibility(
+            visible = !patch.lastCommand.isNullOrBlank() || !patch.lastOutput.isNullOrBlank(),
+            enter = expandVertically(animationSpec = spring(stiffness = Spring.StiffnessLow)),
+            exit = shrinkVertically()
+        ) {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF14151A),
+                    contentColor = Color(0xFFE7EAF3)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .animateContentSize()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Terminal Output",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = Color(0xFF9098A9)
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
                     SelectionContainer {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFF0E111A), RoundedCornerShape(10.dp))
-                                .padding(10.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFF090A0C))
+                                .padding(12.dp)
                                 .horizontalScroll(rememberScrollState())
                         ) {
                             Column {
                                 if (!patch.lastCommand.isNullOrBlank()) {
                                     Text(
-                                        text = "Runtime:",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color(0xFFE7EAF3)
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = patch.lastCommand ?: "",
+                                        text = "$ " + patch.lastCommand,
                                         style = MaterialTheme.typography.bodySmall,
-                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                        color = Color(0xFFE7EAF3)
+                                        fontFamily = FontFamily.Monospace,
+                                        color = Color(0xFF62A0EA)
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                 }
@@ -176,7 +267,7 @@ fun PatchScreen(
                                     Text(
                                         text = patch.lastOutput ?: "",
                                         style = MaterialTheme.typography.bodySmall,
-                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                        fontFamily = FontFamily.Monospace,
                                         color = Color(0xFFE7EAF3)
                                     )
                                 }
@@ -196,15 +287,29 @@ fun VariantButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Button(
+    val backgroundColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium)
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium)
+    )
+
+    Surface(
         onClick = onClick,
-        modifier = modifier,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer
-        )
+        modifier = modifier.height(48.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = backgroundColor,
+        contentColor = contentColor,
+        shadowElevation = if (selected) 4.dp else 0.dp
     ) {
-        Text(text)
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+            )
+        }
     }
 }
 
@@ -215,26 +320,33 @@ fun FileSelector(
     placeholder: String,
     onSelect: () -> Unit
 ) {
-    OutlinedCard(
+    Surface(
         onClick = onSelect,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        border = null
     ) {
         Column(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(horizontal = 20.dp, vertical = 16.dp)
                 .fillMaxWidth()
         ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.primary
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = fileName ?: placeholder,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (fileName != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = if (fileName != null) FontWeight.Medium else FontWeight.Normal
+                ),
+                color = if (fileName != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                maxLines = 1
             )
         }
     }
 }
+

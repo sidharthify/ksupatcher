@@ -1,62 +1,83 @@
 package com.ksupatcher.ui.theme
 
+import android.app.Activity
+import android.os.Build
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import android.app.Activity
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import androidx.compose.ui.graphics.Color
 
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF6B5AA6),
+    primary = Color(0xFF4A34D2),
     onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFE4DBFF),
-    onPrimaryContainer = Color(0xFF1C103B),
-    secondary = Color(0xFF5E5C71),
+    primaryContainer = Color(0xFFE0E0FF),
+    onPrimaryContainer = Color(0xFF0D0065),
+    secondary = Color(0xFF1B6CBA),
     onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFE4E0F4),
-    onSecondaryContainer = Color(0xFF1B1927),
-    surface = Color(0xFFF7F4FA),
-    onSurface = Color(0xFF1A1A1E),
-    surfaceVariant = Color(0xFFE6E0EE),
-    onSurfaceVariant = Color(0xFF4A4458)
+    secondaryContainer = Color(0xFFD4E3FF),
+    onSecondaryContainer = Color(0xFF001C3A),
+    surface = Color(0xFFFCFCFF),
+    onSurface = Color(0xFF191C20),
+    surfaceVariant = Color(0xFFDFE2EB),
+    onSurfaceVariant = Color(0xFF43474E),
+    outline = Color(0xFF74777F)
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFD2C5FF),
-    onPrimary = Color(0xFF2B1B55),
-    primaryContainer = Color(0xFF3E2F6A),
-    onPrimaryContainer = Color(0xFFE8DDFF),
-    secondary = Color(0xFFC9C3DC),
-    onSecondary = Color(0xFF302D40),
-    secondaryContainer = Color(0xFF433F55),
-    onSecondaryContainer = Color(0xFFE5DFF4),
-    surface = Color(0xFF121216),
-    onSurface = Color(0xFFE6E1E6),
-    surfaceVariant = Color(0xFF443D51),
-    onSurfaceVariant = Color(0xFFC9C3D2)
+    primary = Color(0xFFB5C4FF),
+    onPrimary = Color(0xFF171353),
+    primaryContainer = Color(0xFF322A8D),
+    onPrimaryContainer = Color(0xFFE0E0FF),
+    secondary = Color(0xFFA5C8FF),
+    onSecondary = Color(0xFF00315F),
+    secondaryContainer = Color(0xFF004786),
+    onSecondaryContainer = Color(0xFFD4E3FF),
+    surface = Color(0xFF0A0C10),
+    onSurface = Color(0xFFE2E2E6),
+    surfaceVariant = Color(0xFF1E2024),
+    onSurfaceVariant = Color(0xFFC4C6D0),
+    outline = Color(0xFF8E9099)
 )
 
 @Composable
 fun KsuPatcherTheme(
-    darkTheme: Boolean,
+    darkTheme: Boolean = true,
+    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val view = LocalView.current
     val context = LocalContext.current
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        darkTheme -> DarkColors
+        else -> LightColors
+    }
+    
+    val view = LocalView.current
     if (!view.isInEditMode) {
-        val activity = context as? Activity
-        activity?.window?.let { window ->
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = Color.Transparent.toArgb()
+            window.navigationBarColor = Color.Transparent.toArgb()
             WindowCompat.setDecorFitsSystemWindows(window, false)
+            val controller = WindowCompat.getInsetsController(window, view)
+            controller.isAppearanceLightStatusBars = !darkTheme
+            controller.isAppearanceLightNavigationBars = !darkTheme
         }
     }
 
-    val colors = if (darkTheme) DarkColors else LightColors
     MaterialTheme(
-        colorScheme = colors,
+        colorScheme = colorScheme,
         content = content
     )
 }
+

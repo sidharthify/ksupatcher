@@ -1,16 +1,18 @@
 package com.ksupatcher.ui.screens
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ksupatcher.viewmodel.UiState
 
@@ -28,78 +30,112 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(horizontal = 20.dp)
             .verticalScroll(scrollState),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        Spacer(modifier = Modifier.height(24.dp))
+
         Text(
             text = "Settings",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
+            style = MaterialTheme.typography.headlineLarge.copy(
+                fontWeight = FontWeight.Bold
+            ),
+            color = MaterialTheme.colorScheme.onBackground
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
+        // Options: Update | OTA using smooth toggle matching VariantButton
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            TabButton(
+                text = "Update",
+                selected = selectedTab == "update",
                 onClick = { selectedTab = "update" },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedTab == "update") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer
-                )
-            ) {
-                Text("Update")
-            }
-            Button(
+                modifier = Modifier.weight(1f)
+            )
+            TabButton(
+                text = "OTA (soon)",
+                selected = selectedTab == "ota",
                 onClick = { selectedTab = "ota" },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedTab == "ota") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer
-                )
-            ) {
-                Text("OTA (coming soon)")
-            }
+                modifier = Modifier.weight(1f)
+            )
         }
 
         if (selectedTab == "update") {
             Card(
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                )
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
                         text = "Update Configuration",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     OutlinedTextField(
                         value = state.versionUrl,
                         onValueChange = onVersionUrlChange,
-                        label = { Text("Version JSON URL") },
+                        label = { Text("Version JSON URL", style = MaterialTheme.typography.labelMedium) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                        )
                     )
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        Button(onClick = onSaveVersionUrl) { Text("Save URL") }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Button(onClick = onCheckLatestRelease) { Text("Check Latest Release") }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp) // Removed Arrangement.End to span width evenly
+                    ) {
+                        Button(
+                            onClick = onSaveVersionUrl,
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        ) {
+                            Text("Save URL", fontWeight = FontWeight.Bold)
+                        }
+                        Button(
+                            onClick = onCheckLatestRelease,
+                            modifier = Modifier.weight(1.5f).height(48.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Text("Check Release", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
 
             Card(
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                 ),
-                modifier = Modifier.fillMaxWidth()
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -108,42 +144,44 @@ fun SettingsScreen(
                     ) {
                         Text(
                             text = "Version Info",
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                        Column(horizontalAlignment = Alignment.End) {
-                            Button(
-                                onClick = onRefreshVersion,
-                                enabled = !state.isCheckingVersion
-                            ) {
-                                if (state.isCheckingVersion) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(16.dp),
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Checking...")
-                                } else {
-                                    Text("Check Now")
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            if (!state.latestReleaseTag.isNullOrBlank()) {
-                                Text("Latest tag: ${state.latestReleaseTag}")
-                            }
-                            val ts = state.updateManifest?.timestamp ?: "n/a"
-                            val sha = state.updateManifest?.sha256 ?: "n/a"
-                            if (state.updateManifest != null) {
-                                Text("Manifest timestamp: $ts")
-                                Text("Manifest sha256: $sha")
-                            }
-                            state.manifestError?.let { err ->
-                                Text(err, color = MaterialTheme.colorScheme.error)
+                        
+                        FilledTonalButton(
+                            onClick = onRefreshVersion,
+                            enabled = !state.isCheckingVersion,
+                            shape = RoundedCornerShape(16.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            if (state.isCheckingVersion) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Checking...")
+                            } else {
+                                Text("Check Now", fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
 
-                    HorizontalDivider()
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (!state.latestReleaseTag.isNullOrBlank()) {
+                            Text("Latest tag: ${state.latestReleaseTag}", style = MaterialTheme.typography.bodyMedium)
+                        }
+                        if (state.updateManifest != null) {
+                            Text("Manifest timestamp: ${state.updateManifest.timestamp ?: "n/a"}", style = MaterialTheme.typography.bodyMedium)
+                            Text("Manifest sha256: ${state.updateManifest.sha256 ?: "n/a"}", style = MaterialTheme.typography.bodyMedium)
+                        }
+                        state.manifestError?.let { err ->
+                            Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
                     if (state.versionError != null) {
                         Text(
@@ -161,12 +199,13 @@ fun SettingsScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = "Release Notes",
-                                    style = MaterialTheme.typography.labelMedium,
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
                                     text = info.notes,
-                                    style = MaterialTheme.typography.bodySmall
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         } else {
@@ -184,10 +223,44 @@ fun SettingsScreen(
 }
 
 @Composable
+fun TabButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val backgroundColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium)
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium)
+    )
+
+    Surface(
+        onClick = onClick,
+        modifier = modifier.height(48.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = backgroundColor,
+        contentColor = contentColor,
+        shadowElevation = if (selected) 4.dp else 0.dp
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+            )
+        }
+    }
+}
+
+@Composable
 fun InfoRow(label: String, value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = label,
@@ -198,7 +271,7 @@ fun InfoRow(label: String, value: String) {
             text = value,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
