@@ -5,14 +5,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SystemUpdate
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
@@ -46,7 +44,10 @@ fun KsuPatcherNavGraph(
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp
+            ) {
                 navItems.forEach { item ->
                     val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
                     NavigationBarItem(
@@ -61,7 +62,14 @@ fun KsuPatcherNavGraph(
                             }
                         },
                         icon = item.icon,
-                        label = { Text(item.label) }
+                        label = { Text(item.label, style = MaterialTheme.typography.labelSmall) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            indicatorColor = Color.Transparent
+                        )
                     )
                 }
             }

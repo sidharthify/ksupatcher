@@ -27,6 +27,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import com.ksupatcher.ui.components.*
 import com.ksupatcher.viewmodel.KsuVariant
 import com.ksupatcher.viewmodel.UiState
 
@@ -53,63 +57,39 @@ fun PatchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 24.dp)
             .verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
         
         Text(
             text = "Patch Image",
-            style = MaterialTheme.typography.headlineLarge.copy(
-                fontWeight = FontWeight.Bold
-            ),
+            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        // Variant Selection
-        Card(
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            modifier = Modifier.fillMaxWidth()
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    text = "KernelSU Variant",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    VariantButton(
-                        text = "Official (KSU)",
-                        selected = patch.variant == KsuVariant.KSU,
-                        onClick = { onVariantSelected(KsuVariant.KSU) },
-                        modifier = Modifier.weight(1f)
-                    )
-                    VariantButton(
-                        text = "Next (KSUN)",
-                        selected = patch.variant == KsuVariant.KSUN,
-                        onClick = { onVariantSelected(KsuVariant.KSUN) },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
+            AppActionTile(
+                title = "KernelSU",
+                drawableRes = com.ksupatcher.R.drawable.ic_ksu_logo,
+                selected = patch.variant == KsuVariant.KSU,
+                onClick = { onVariantSelected(KsuVariant.KSU) },
+                modifier = Modifier.weight(1f)
+            )
+            AppActionTile(
+                title = "KernelSU-Next",
+                drawableRes = com.ksupatcher.R.drawable.ic_ksun_logo,
+                selected = patch.variant == KsuVariant.KSUN,
+                onClick = { onVariantSelected(KsuVariant.KSUN) },
+                modifier = Modifier.weight(1f)
+            )
         }
 
-        // File Selection Section
-        Text(
-            text = "Required Files",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(top = 8.dp)
-        )
+        AppSectionHeader(title = "Required Files")
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             FileSelector(
@@ -127,14 +107,12 @@ fun PatchScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Status & Action
-        AnimatedVisibility(
-            visible = patch.isPatching,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            AnimatedVisibility(
+                visible = patch.isPatching,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
@@ -166,49 +144,49 @@ fun PatchScreen(
             enter = expandVertically(),
             exit = shrinkVertically()
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Button(
                     onClick = onRunPatch,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(20.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
                     Text(
                         text = "Start Patching",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.titleMedium
                     )
                 }
 
                 if (!patch.status.isNullOrBlank()) {
                     Card(
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = if (patch.status.contains("failed", ignoreCase = true))
                                 MaterialTheme.colorScheme.errorContainer
                             else
-                                MaterialTheme.colorScheme.tertiaryContainer
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
                             text = patch.status,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = if (patch.status.contains("failed", ignoreCase = true))
                                 MaterialTheme.colorScheme.onErrorContainer
                             else
-                                MaterialTheme.colorScheme.onTertiaryContainer,
+                                MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                         )
                     }
                 }
             }
         }
+    }
 
-        // Output Log Console
         AnimatedVisibility(
             visible = !patch.lastCommand.isNullOrBlank() || !patch.lastOutput.isNullOrBlank(),
             enter = expandVertically(animationSpec = spring(stiffness = Spring.StiffnessLow)),
@@ -217,8 +195,7 @@ fun PatchScreen(
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF14151A),
-                    contentColor = Color(0xFFE7EAF3)
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 ),
                 modifier = Modifier
                     .fillMaxWidth()

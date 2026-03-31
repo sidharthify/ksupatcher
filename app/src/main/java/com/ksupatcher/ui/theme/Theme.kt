@@ -32,19 +32,25 @@ private val LightColors = lightColorScheme(
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFB5C4FF),
-    onPrimary = Color(0xFF171353),
-    primaryContainer = Color(0xFF322A8D),
-    onPrimaryContainer = Color(0xFFE0E0FF),
-    secondary = Color(0xFFA5C8FF),
-    onSecondary = Color(0xFF00315F),
-    secondaryContainer = Color(0xFF004786),
-    onSecondaryContainer = Color(0xFFD4E3FF),
+    primary = Color.White,
+    onPrimary = Color.Black,
+    primaryContainer = Color(0xFF1E2024),
+    onPrimaryContainer = Color.White,
+    secondary = Color(0xFF8E8E93),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFF1E2024),
+    onSecondaryContainer = Color.White,
     surface = Color(0xFF0A0C10),
-    onSurface = Color(0xFFE2E2E6),
+    onSurface = Color.White,
     surfaceVariant = Color(0xFF1E2024),
-    onSurfaceVariant = Color(0xFFC4C6D0),
-    outline = Color(0xFF8E9099)
+    onSurfaceVariant = Color(0xFF8E8E93),
+    outline = Color(0xFF2C2C2E),
+    background = Color(0xFF0A0C10),
+    onBackground = Color.White,
+    error = Color(0xFFF44336),
+    onError = Color.White,
+    errorContainer = Color(0x28F44336),
+    onErrorContainer = Color(0xFFF44336)
 )
 
 @Composable
@@ -77,6 +83,7 @@ fun KsuPatcherTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
+        typography = Typography,
         content = content
     )
 }
