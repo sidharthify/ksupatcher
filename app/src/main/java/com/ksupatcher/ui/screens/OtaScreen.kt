@@ -38,15 +38,20 @@ fun OtaScreen(
     onReset: () -> Unit,
     onReboot: () -> Unit
 ) {
+    val scrollState = rememberScrollState()
     val isRunning = otaState.phase !in listOf(
         OtaPhase.IDLE, OtaPhase.DONE, OtaPhase.ERROR,
         OtaPhase.NO_ROOT, OtaPhase.NO_OTA_PENDING
     )
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp)
+            .verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = "OTA Root Patch",
             style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
@@ -227,22 +232,27 @@ fun OtaScreen(
 
 @Composable
 private fun PhaseStatusCard(otaState: OtaState) {
-    val (containerColor, icon, label) = when (otaState.phase) {
+    val (containerColor, contentColor, icon, label) = when (otaState.phase) {
         OtaPhase.DONE ->
-            Triple(MaterialTheme.colorScheme.tertiaryContainer, Icons.Filled.CheckCircle, "Complete")
+            arrayOf(MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer, Icons.Filled.CheckCircle, "Complete")
         OtaPhase.ERROR ->
-            Triple(MaterialTheme.colorScheme.errorContainer, Icons.Filled.Error, "Error")
+            arrayOf(MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer, Icons.Filled.Error, "Error")
         OtaPhase.NO_ROOT ->
-            Triple(MaterialTheme.colorScheme.errorContainer, Icons.Filled.Error, "No Root Access")
+            arrayOf(MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer, Icons.Filled.Error, "No Root Access")
         OtaPhase.NO_OTA_PENDING ->
-            Triple(MaterialTheme.colorScheme.secondaryContainer, Icons.Filled.Warning, "No OTA Pending")
+            arrayOf(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer, Icons.Filled.Warning, "No OTA Pending")
         else ->
-            Triple(MaterialTheme.colorScheme.surfaceVariant, Icons.Filled.CheckCircle, phaseLabel(otaState.phase))
+            arrayOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant, Icons.Filled.CheckCircle, phaseLabel(otaState.phase))
     }
+
+    @Suppress("UNCHECKED_CAST")
+    val bgColor = containerColor as androidx.compose.ui.graphics.Color
+    @Suppress("UNCHECKED_CAST")
+    val fgColor = contentColor as androidx.compose.ui.graphics.Color
 
     Card(
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
+        colors = CardDefaults.cardColors(containerColor = bgColor, contentColor = fgColor),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -250,17 +260,17 @@ private fun PhaseStatusCard(otaState: OtaState) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp))
+            Icon(icon as androidx.compose.ui.graphics.vector.ImageVector, contentDescription = null, modifier = Modifier.size(22.dp))
             Column {
                 Text(
-                    label,
+                    label as String,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
                 )
                 if (otaState.currentSlot != null) {
                     Text(
                         "Current slot: ${otaState.currentSlot}  →  target: ${otaState.nextSlot ?: "—"}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        color = fgColor
                     )
                 }
             }

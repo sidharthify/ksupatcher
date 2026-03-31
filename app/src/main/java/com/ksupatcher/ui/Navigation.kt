@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -18,6 +19,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.ksupatcher.ui.screens.OtaScreen
 import com.ksupatcher.ui.screens.PatchScreen
 import com.ksupatcher.ui.screens.SettingsScreen
 import com.ksupatcher.viewmodel.MainViewModel
@@ -35,6 +37,7 @@ fun KsuPatcherNavGraph(
     val navController = rememberNavController()
     val navItems = listOf(
         NavItem("patch", "Patch") { Icon(Icons.Filled.Build, contentDescription = null) },
+        NavItem("ota", "OTA") { Icon(Icons.Filled.SystemUpdate, contentDescription = null) },
         NavItem("settings", "Settings") { Icon(Icons.Filled.Settings, contentDescription = null) }
     )
 
@@ -79,6 +82,16 @@ fun KsuPatcherNavGraph(
                     onRunPatch = viewModel::runPatch
                 )
             }
+            composable("ota") {
+                val state by viewModel.state.collectAsStateWithLifecycle()
+                OtaScreen(
+                    otaState = state.otaState,
+                    onRunOta = viewModel::runOtaPatch,
+                    onRunLkm = viewModel::runLkmUpdate,
+                    onReset = viewModel::resetOta,
+                    onReboot = viewModel::rebootNow
+                )
+            }
             composable("settings") {
                 val state by viewModel.state.collectAsStateWithLifecycle()
                 SettingsScreen(
@@ -86,11 +99,7 @@ fun KsuPatcherNavGraph(
                     onRefreshVersion = viewModel::refreshVersion,
                     onVersionUrlChange = viewModel::updateVersionUrl,
                     onSaveVersionUrl = viewModel::saveVersionUrl,
-                    onCheckLatestRelease = viewModel::checkLatestReleaseUpdate,
-                    onRunOta = viewModel::runOtaPatch,
-                    onRunLkm = viewModel::runLkmUpdate,
-                    onResetOta = viewModel::resetOta,
-                    onRebootNow = viewModel::rebootNow
+                    onCheckLatestRelease = viewModel::checkLatestReleaseUpdate
                 )
             }
         }

@@ -761,6 +761,8 @@ class MainViewModel(
         setPhase(OtaPhase.FLASHING)
         appendLog("Flashing: ${patchedImg.absolutePath} → $blockDevice")
         try {
+            // make block device writable before flashing
+            RootShell.run("blockdev --setrw $blockDevice")
             RootShell.run("dd if=${patchedImg.absolutePath} of=$blockDevice bs=4096")
         } catch (e: Throwable) {
             setPhase(OtaPhase.ERROR)
