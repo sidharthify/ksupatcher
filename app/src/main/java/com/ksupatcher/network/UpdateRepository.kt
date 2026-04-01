@@ -46,9 +46,9 @@ class UpdateRepository(
                 if (!response.isSuccessful) error("Failed to fetch update.json: ${response.code}")
                 val body = response.body?.string() ?: error("Empty update.json")
                 val json = org.json.JSONObject(body)
-                val timestamp = json.optString("timestamp", null)
-                val sha256 = json.optString("sha256", null)
-                UpdateManifest(tag = tag, timestamp = timestamp, sha256 = sha256)
+                val timestamp = json.optString("timestamp")
+                val sha256 = json.optString("sha256")
+                UpdateManifest(tag = tag, timestamp = if (timestamp.isEmpty()) null else timestamp, sha256 = if (sha256.isEmpty()) null else sha256)
             }
         }
     }

@@ -34,6 +34,7 @@ import com.ksupatcher.ui.components.*
 import com.ksupatcher.viewmodel.InstallMethod
 import com.ksupatcher.viewmodel.KsuVariant
 import com.ksupatcher.viewmodel.OtaPhase
+import com.ksupatcher.viewmodel.RootStatus
 import com.ksupatcher.viewmodel.UiState
 
 @Composable
@@ -45,7 +46,7 @@ fun PatchScreen(
     onPickModule: (Uri) -> Unit,
     onRunPatch: () -> Unit,
     onRunLkm: () -> Unit,
-    onReset: () -> Unit
+    onResetInstall: () -> Unit
 ) {
     val bootPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -144,23 +145,32 @@ fun PatchScreen(
                 FileSelector(
                     label = "Kernel Module",
                     fileName = patch.moduleName,
-                    placeholder = "Optional: custom kernelsu.ko",
+                    placeholder = "Option: custom kernelsu.ko",
                     onSelect = { modulePicker.launch(arrayOf("application/octet-stream")) }
                 )
             }
         } else {
-            Card(
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "This will update the KernelSU module on your current boot slot using root access.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(16.dp)
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "This will update the KernelSU module on your current boot slot using root access.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+
+                FileSelector(
+                    label = "Kernel Module",
+                    fileName = patch.moduleName,
+                    placeholder = "Option: custom kernelsu.ko",
+                    onSelect = { modulePicker.launch(arrayOf("application/octet-stream")) }
                 )
             }
         }
@@ -168,8 +178,8 @@ fun PatchScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         val isOtaActive = state.otaState.phase !in listOf(OtaPhase.IDLE, OtaPhase.DONE, OtaPhase.ERROR, OtaPhase.NO_ROOT, OtaPhase.NO_OTA_PENDING)
-        val showStartButton = !patch.isPatching && !isOtaActive && (patch.method == InstallMethod.PATCH || state.otaState.phase == OtaPhase.IDLE)
-        val showResetButton = !patch.isPatching && !isOtaActive && patch.method == InstallMethod.LKM && state.otaState.phase != OtaPhase.IDLE
+        val showStartButton = !patch.isPatching && !isOtaActive && (patch.status == null || patch.status == "Reboot recommended")
+        val showResetButton = !patch.isPatching && (patch.status != null || patch.lastOutput != null)
 
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             AnimatedVisibility(
@@ -206,6 +216,7 @@ fun PatchScreen(
             if (showStartButton) {
                 Button(
                     onClick = { if (patch.method == InstallMethod.PATCH) onRunPatch() else onRunLkm() },
+                    enabled = patch.method == InstallMethod.PATCH || state.rootStatus == com.ksupatcher.viewmodel.RootStatus.GRANTED,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(64.dp),
@@ -224,7 +235,7 @@ fun PatchScreen(
 
             if (showResetButton) {
                 OutlinedButton(
-                    onClick = onReset,
+                    onClick = onResetInstall,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -265,7 +276,7 @@ fun PatchScreen(
                 }
             }
 
-            if (!patch.status.isNullOrBlank()) {
+            if (!patch.isPatching && !patch.status.isNullOrBlank()) {
                 val isFailed = patch.status.contains("failed", ignoreCase = true) || patch.status.contains("error", ignoreCase = true)
                 Card(
                     shape = RoundedCornerShape(24.dp),
@@ -319,7 +330,7 @@ fun PatchScreen(
                             color = Color(0xFF9098A9)
                         )
                         IconButton(
-                            onClick = onReset,
+                            onClick = onResetInstall,
                             modifier = Modifier.size(24.dp)
                         ) {
                             Icon(
@@ -345,43 +356,23 @@ fun PatchScreen(
                                 .horizontalScroll(rememberScrollState())
                         ) {
                             Column {
-                                if (patch.method == InstallMethod.PATCH) {
-                                    if (!patch.lastCommand.isNullOrBlank()) {
-                                        Text(
-                                            text = "$ " + patch.lastCommand,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontFamily = FontFamily.Monospace,
-                                            color = Color(0xFF62A0EA)
-                                        )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                    }
+                                 if (!patch.lastCommand.isNullOrBlank()) {
+                                    Text(
+                                        text = "$ " + patch.lastCommand,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = Color(0xFF62A0EA)
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
 
-                                    if (!patch.lastOutput.isNullOrBlank()) {
-                                        Text(
-                                            text = patch.lastOutput ?: "",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontFamily = FontFamily.Monospace,
-                                            color = Color(0xFFE7EAF3)
-                                        )
-                                    }
-                                } else {
-                                    if (!patch.lastCommand.isNullOrBlank()) {
-                                        Text(
-                                            text = "$ " + patch.lastCommand,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontFamily = FontFamily.Monospace,
-                                            color = Color(0xFF62A0EA)
-                                        )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                    }
-                                    if (state.otaState.log.isNotBlank()) {
-                                        Text(
-                                            text = state.otaState.log.trimStart('\n'),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontFamily = FontFamily.Monospace,
-                                            color = Color(0xFFE7EAF3)
-                                        )
-                                    }
+                                if (!patch.lastOutput.isNullOrBlank()) {
+                                    Text(
+                                        text = patch.lastOutput ?: "",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = Color(0xFFE7EAF3)
+                                    )
                                 }
                             }
                         }

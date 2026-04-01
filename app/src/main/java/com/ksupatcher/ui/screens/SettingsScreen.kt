@@ -17,10 +17,7 @@ import com.ksupatcher.viewmodel.UiState
 @Composable
 fun SettingsScreen(
     state: UiState,
-    onRefreshVersion: () -> Unit,
-    onVersionUrlChange: (String) -> Unit,
-    onSaveVersionUrl: () -> Unit,
-    onCheckLatestRelease: () -> Unit
+    onRefreshVersion: () -> Unit
 ) {
     val scrollState = rememberScrollState()
 

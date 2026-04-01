@@ -605,7 +605,7 @@ class MainViewModel(
                         val currentLine = line + "\n"
                         _state.update { state ->
                             val patch = state.patchState.copy(lastOutput = currentFull)
-                            val ota = if (state.otaState.phase != OtaPhase.IDLE) {
+                            val ota = if (state.otaState.phase != OtaPhase.IDLE && !state.otaState.isLkmMode) {
                                 state.otaState.copy(log = state.otaState.log + currentLine)
                             } else {
                                 state.otaState
@@ -645,9 +645,12 @@ class MainViewModel(
     }
 
     fun resetOta() {
-        _state.update { 
+        _state.update { it.copy(otaState = OtaState()) }
+    }
+
+    fun resetInstall() {
+        _state.update {
             it.copy(
-                otaState = OtaState(),
                 patchState = it.patchState.copy(
                     lastCommand = null,
                     lastOutput = null,
@@ -655,7 +658,8 @@ class MainViewModel(
                     bootImageName = null,
                     bootImagePath = null,
                     moduleName = null,
-                    modulePath = null
+                    modulePath = null,
+                    isPatching = false
                 )
             )
         }
@@ -671,46 +675,67 @@ class MainViewModel(
 
     private suspend fun executeOtaFlow(lkmMode: Boolean) {
         fun appendLog(msg: String) {
-            _state.update {
-                it.copy(otaState = it.otaState.copy(log = it.otaState.log + "\n" + msg))
+            _state.update { state ->
+                if (lkmMode) {
+                    val newOutput = (state.patchState.lastOutput ?: "") + "\n" + msg
+                    state.copy(patchState = state.patchState.copy(lastOutput = newOutput))
+                } else {
+                    state.copy(otaState = state.otaState.copy(log = state.otaState.log + "\n" + msg))
+                }
             }
         }
         fun setPhase(p: OtaPhase) {
-            _state.update { it.copy(otaState = it.otaState.copy(phase = p)) }
-        }
-
-        _state.update {
-            it.copy(
-                otaState = OtaState(phase = OtaPhase.CHECKING_ROOT, isLkmMode = lkmMode),
-                patchState = it.patchState.copy(
-                    isPatching = true,
-                    lastCommand = if (lkmMode) "ksud install" else it.patchState.lastCommand,
-                    lastOutput = null,
-                    status = if (lkmMode) "Preparing LKM update..." else it.patchState.status
-                )
-            )
-        }
-
-        if (!RootShell.isRooted()) {
-            val granted = withContext(Dispatchers.IO) {
-                try {
-                    RootShell.run("true")
-                    true
-                } catch (_: Throwable) { false }
-            }
-            if (!granted) {
-                setPhase(OtaPhase.NO_ROOT)
-                _state.update { it.copy(patchState = it.patchState.copy(isPatching = false, status = "Root access denied")) }
-                appendLog("Root access denied. Please grant root permission to this app.")
-                return
+            _state.update { state ->
+                if (lkmMode) {
+                    // In LKM mode, we don't set OTA phase to keep OTA screen idle
+                    state
+                } else {
+                    state.copy(otaState = state.otaState.copy(phase = p))
+                }
             }
         }
-        appendLog("Root access granted.")
-        val variantName = if (_state.value.patchState.variant == KsuVariant.KSUN) "KernelSU-Next" else "KernelSU"
-        appendLog("Target variant: $variantName")
-        _state.update { it.copy(patchState = it.patchState.copy(status = "Root access granted ($variantName)")) }
 
         try {
+            _state.update { state ->
+                if (lkmMode) {
+                    state.copy(
+                        patchState = state.patchState.copy(
+                            isPatching = true,
+                            lastCommand = "ksud install",
+                            lastOutput = null,
+                            status = "Preparing LKM update..."
+                        )
+                    )
+                } else {
+                    state.copy(
+                        otaState = OtaState(phase = OtaPhase.CHECKING_ROOT, isLkmMode = false)
+                    )
+                }
+            }
+
+            if (!RootShell.isRooted()) {
+                val granted = withContext(Dispatchers.IO) {
+                    try {
+                        RootShell.run("true")
+                        true
+                    } catch (_: Throwable) { false }
+                }
+                if (!granted) {
+                    setPhase(OtaPhase.NO_ROOT)
+                    if (lkmMode) {
+                        _state.update { it.copy(patchState = it.patchState.copy(status = "Root access denied")) }
+                        appendLog("Root access denied. Please grant root permission to this app.")
+                    }
+                    return
+                }
+            }
+            appendLog("Root access granted.")
+            val variantName = if (_state.value.patchState.variant == KsuVariant.KSUN) "KernelSU-Next" else "KernelSU"
+            appendLog("Target variant: $variantName")
+            if (lkmMode) {
+                _state.update { it.copy(patchState = it.patchState.copy(status = "Root access granted ($variantName)")) }
+            }
+
             if (!lkmMode) {
                 setPhase(OtaPhase.CHECKING_OTA_PROP)
                 appendLog("Checking for pending OTA (getprop ota.other.vbmeta_digest)...")
@@ -718,13 +743,11 @@ class MainViewModel(
                     RootShell.getProp("ota.other.vbmeta_digest")
                 } catch (e: Throwable) {
                     setPhase(OtaPhase.ERROR)
-                    _state.update { it.copy(patchState = it.patchState.copy(isPatching = false, status = "Error reading prop")) }
                     appendLog("Error reading prop: ${e.message}")
                     return
                 }
                 if (otaProp.isNullOrBlank()) {
                     setPhase(OtaPhase.NO_OTA_PENDING)
-                    _state.update { it.copy(patchState = it.patchState.copy(isPatching = false, status = "No OTA pending")) }
                     appendLog("No OTA update is pending (ota.other.vbmeta_digest is empty).\nApply an OTA update first, then come back here before rebooting.")
                     return
                 }
@@ -736,7 +759,7 @@ class MainViewModel(
                 RootShell.getProp("ro.boot.slot_suffix") ?: error("ro.boot.slot_suffix returned empty")
             } catch (e: Throwable) {
                 setPhase(OtaPhase.ERROR)
-                _state.update { it.copy(patchState = it.patchState.copy(isPatching = false, status = "Failed to read slot")) }
+                if (lkmMode) _state.update { it.copy(patchState = it.patchState.copy(status = "Failed to read slot")) }
                 appendLog("Failed to read slot: ${e.message}")
                 return
             }
@@ -772,7 +795,7 @@ class MainViewModel(
                 RootShell.run("dd if=$blockDevice of=${dumpedImg.absolutePath} bs=4096")
             } catch (e: Throwable) {
                 setPhase(OtaPhase.ERROR)
-                _state.update { it.copy(patchState = it.patchState.copy(isPatching = false, status = "Dump failed")) }
+                if (lkmMode) _state.update { it.copy(patchState = it.patchState.copy(status = "Dump failed")) }
                 appendLog("DD (dump) failed: ${e.message}")
                 return
             }
@@ -782,7 +805,7 @@ class MainViewModel(
             val binaryPrepare = ensureBinaries()
             if (binaryPrepare.isFailure) {
                 setPhase(OtaPhase.ERROR)
-                _state.update { it.copy(patchState = it.patchState.copy(isPatching = false, status = "Binary prep failed")) }
+                if (lkmMode) _state.update { it.copy(patchState = it.patchState.copy(status = "Binary prep failed")) }
                 appendLog("Binary preparation failed: ${binaryPrepare.exceptionOrNull()?.message}")
                 return
             }
@@ -791,8 +814,8 @@ class MainViewModel(
             val module = _state.value.patchState.modulePath
             if (module.isNullOrBlank()) {
                 setPhase(OtaPhase.ERROR)
-                _state.update { it.copy(patchState = it.patchState.copy(isPatching = false, status = "No module selected")) }
-                appendLog("No kernel module selected. Go to Patch tab and let the module auto-download, or select one manually.")
+                if (lkmMode) _state.update { it.copy(patchState = it.patchState.copy(status = "No module available")) }
+                appendLog("No kernel module found. Please select one manually or ensure your internet connection is active to auto-download.")
                 return
             }
             val patchCmd = listOf(
@@ -808,14 +831,14 @@ class MainViewModel(
             val patchResult = executeCommandStreaming(patchCmd, workDir)
             if (patchResult.isFailure) {
                 setPhase(OtaPhase.ERROR)
-                _state.update { it.copy(patchState = it.patchState.copy(isPatching = false, status = "Patch failed")) }
+                if (lkmMode) _state.update { it.copy(patchState = it.patchState.copy(status = "Patch failed")) }
                 appendLog("Patch failed: ${patchResult.exceptionOrNull()?.message}")
                 return
             }
             val patchedImg = findPatchedImage(workDir)
             if (patchedImg == null) {
                 setPhase(OtaPhase.ERROR)
-                _state.update { it.copy(patchState = it.patchState.copy(isPatching = false, status = "Image not found")) }
+                if (lkmMode) _state.update { it.copy(patchState = it.patchState.copy(status = "Image not found")) }
                 appendLog("Patched image not found in work directory.")
                 return
             }
@@ -829,7 +852,7 @@ class MainViewModel(
                 RootShell.run("dd if=${patchedImg.absolutePath} of=$blockDevice bs=4096")
             } catch (e: Throwable) {
                 setPhase(OtaPhase.ERROR)
-                _state.update { it.copy(patchState = it.patchState.copy(isPatching = false, status = "Flash failed")) }
+                if (lkmMode) _state.update { it.copy(patchState = it.patchState.copy(status = "Flash failed")) }
                 appendLog("DD (flash) failed: ${e.message}")
                 return
             }
@@ -838,7 +861,7 @@ class MainViewModel(
             _state.update {
                 it.copy(
                     otaState = it.otaState.copy(rebootRequired = true),
-                    patchState = it.patchState.copy(isPatching = false, status = "Installed successfully")
+                    patchState = it.patchState.copy(status = "Installed successfully")
                 )
             }
             appendLog(
@@ -849,8 +872,14 @@ class MainViewModel(
             )
         } catch (e: Throwable) {
             setPhase(OtaPhase.ERROR)
-            _state.update { it.copy(patchState = it.patchState.copy(isPatching = false, status = "Unexpected error")) }
+            if (lkmMode) _state.update { it.copy(patchState = it.patchState.copy(status = "Unexpected error")) }
             appendLog("Unexpected error in flow: ${e.message}")
+        } finally {
+            if (lkmMode) {
+                _state.update { 
+                    it.copy(patchState = it.patchState.copy(isPatching = false))
+                }
+            }
         }
     }
 

@@ -34,7 +34,7 @@ fun KsuPatcherNavGraph(
 ) {
     val navController = rememberNavController()
     val navItems = listOf(
-        NavItem("patch", "Install") { Icon(Icons.Filled.Build, contentDescription = null) },
+        NavItem("install", "Install") { Icon(Icons.Filled.Build, contentDescription = null) },
         NavItem("ota", "OTA") { Icon(Icons.Filled.SystemUpdate, contentDescription = null) },
         NavItem("settings", "Settings") { Icon(Icons.Filled.Settings, contentDescription = null) }
     )
@@ -77,40 +77,37 @@ fun KsuPatcherNavGraph(
     ) { padding ->
         NavHost(
             navController = navController,
-            startDestination = "patch",
+            startDestination = "install",
             modifier = Modifier.padding(padding)
         ) {
-            composable("patch") {
+            composable("install") {
                 val state by viewModel.state.collectAsStateWithLifecycle()
                 PatchScreen(
                     state = state,
-                    onVariantSelected = viewModel::selectVariant,
-                    onMethodSelected = viewModel::selectMethod,
-                    onPickBoot = viewModel::importBootImage,
-                    onPickModule = viewModel::importModule,
-                    onRunPatch = viewModel::runPatch,
-                    onRunLkm = viewModel::runLkmUpdate,
-                    onReset = viewModel::resetOta
+                    onVariantSelected = { viewModel.selectVariant(it) },
+                    onMethodSelected = { viewModel.selectMethod(it) },
+                    onPickBoot = { viewModel.importBootImage(it) },
+                    onPickModule = { viewModel.importModule(it) },
+                    onRunPatch = { viewModel.runPatch() },
+                    onRunLkm = { viewModel.runLkmUpdate() },
+                    onResetInstall = { viewModel.resetInstall() }
                 )
             }
             composable("ota") {
                 val state by viewModel.state.collectAsStateWithLifecycle()
                 OtaScreen(
                     otaState = state.otaState,
-                    onRunOta = viewModel::runOtaPatch,
-                    onRunLkm = viewModel::runLkmUpdate,
-                    onReset = viewModel::resetOta,
-                    onReboot = viewModel::rebootNow
+                    rootStatus = state.rootStatus,
+                    onRunOta = { viewModel.runOtaPatch() },
+                    onResetOta = { viewModel.resetOta() },
+                    onReboot = { viewModel.rebootNow() }
                 )
             }
             composable("settings") {
                 val state by viewModel.state.collectAsStateWithLifecycle()
                 SettingsScreen(
                     state = state,
-                    onRefreshVersion = viewModel::refreshVersion,
-                    onVersionUrlChange = viewModel::updateVersionUrl,
-                    onSaveVersionUrl = viewModel::saveVersionUrl,
-                    onCheckLatestRelease = viewModel::checkLatestReleaseUpdate
+                    onRefreshVersion = { viewModel.refreshVersion() }
                 )
             }
         }

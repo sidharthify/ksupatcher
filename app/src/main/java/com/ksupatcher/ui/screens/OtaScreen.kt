@@ -33,12 +33,14 @@ import com.ksupatcher.ui.components.AppStatusCard
 import com.ksupatcher.viewmodel.OtaPhase
 import com.ksupatcher.viewmodel.OtaState
 
+import com.ksupatcher.viewmodel.RootStatus
+
 @Composable
 fun OtaScreen(
     otaState: OtaState,
+    rootStatus: RootStatus,
     onRunOta: () -> Unit,
-    onRunLkm: () -> Unit,
-    onReset: () -> Unit,
+    onResetOta: () -> Unit,
     onReboot: () -> Unit
 ) {
     val scrollState = rememberScrollState()
@@ -112,10 +114,38 @@ fun OtaScreen(
             PhaseStatusCard(otaState)
         }
 
+        if (otaState.phase == OtaPhase.IDLE && rootStatus != RootStatus.GRANTED) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                    Text(
+                        "Root permission is required to perform OTA patching.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+        }
+
         if (!isRunning) {
             if (otaState.phase == OtaPhase.IDLE) {
                 Button(
                     onClick = onRunOta,
+                    enabled = rootStatus == RootStatus.GRANTED,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(20.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -127,7 +157,7 @@ fun OtaScreen(
                 }
             } else {
                 OutlinedButton(
-                    onClick = onReset,
+                    onClick = onResetOta,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(20.dp)
                 ) {
