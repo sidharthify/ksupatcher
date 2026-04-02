@@ -235,7 +235,7 @@ fun PatchScreen(
             }
 
             AnimatedVisibility(
-                visible = state.otaState.rebootRequired,
+                visible = patch.rebootRequired,
                 enter = expandVertically(),
                 exit = shrinkVertically()
             ) {
@@ -353,17 +353,6 @@ fun PatchScreen(
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                             color = Color(0xFF9098A9)
                         )
-                        IconButton(
-                            onClick = onResetInstall,
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                Icons.Filled.DeleteSweep,
-                                contentDescription = "Clear Terminal",
-                                tint = Color(0xFF9098A9),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
                     }
                     
                     Spacer(modifier = Modifier.height(12.dp))

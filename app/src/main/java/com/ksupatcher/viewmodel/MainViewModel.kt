@@ -68,7 +68,8 @@ data class UiState(
     val updateManifest: com.ksupatcher.data.UpdateManifest? = null,
     val manifestError: String? = null,
     val otaState: OtaState = OtaState(),
-    val rootStatus: RootStatus = RootStatus.UNKNOWN
+    val rootStatus: RootStatus = RootStatus.UNKNOWN,
+    val isCheckingRoot: Boolean = false
 )
 
 data class PatchState(
@@ -82,7 +83,8 @@ data class PatchState(
     val status: String? = null,
     val lastCommand: String? = null,
     val lastOutput: String? = null,
-    val outputPath: String? = null
+    val outputPath: String? = null,
+    val rebootRequired: Boolean = false
 )
 
 class MainViewModel(
@@ -120,10 +122,12 @@ class MainViewModel(
     }
 
     fun refreshRootStatus() {
+        _state.update { it.copy(isCheckingRoot = true) }
         viewModelScope.launch(Dispatchers.IO) {
             val isRooted = RootShell.isRooted()
             val status = if (isRooted) RootStatus.GRANTED else RootStatus.NOT_GRANTED
             settingsRepository.setRootStatus(status.name)
+            _state.update { it.copy(isCheckingRoot = false) }
         }
     }
 
@@ -659,7 +663,8 @@ class MainViewModel(
                     bootImagePath = null,
                     moduleName = null,
                     modulePath = null,
-                    isPatching = false
+                    isPatching = false,
+                    rebootRequired = false
                 )
             )
         }
@@ -859,10 +864,19 @@ class MainViewModel(
 
             setPhase(OtaPhase.DONE)
             _state.update {
-                it.copy(
-                    otaState = it.otaState.copy(rebootRequired = true),
-                    patchState = it.patchState.copy(status = "Installed successfully")
-                )
+                if (lkmMode) {
+                    it.copy(
+                        patchState = it.patchState.copy(
+                            status = "Installed successfully",
+                            rebootRequired = true
+                        )
+                    )
+                } else {
+                    it.copy(
+                        otaState = it.otaState.copy(rebootRequired = true),
+                        patchState = it.patchState.copy(status = "Installed successfully")
+                    )
+                }
             }
             appendLog(
                 if (lkmMode)

@@ -271,16 +271,19 @@ fun StepConnector(modifier: Modifier = Modifier) {
 @Composable
 fun RootStatusCard(
     status: com.ksupatcher.viewmodel.RootStatus,
+    isChecking: Boolean = false,
     onRefresh: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val isGranted = status == com.ksupatcher.viewmodel.RootStatus.GRANTED
-    val containerColor = if (isGranted) 
-        Color(0xFF1B2E1E).copy(alpha = 0.8f) 
-    else 
-        Color(0xFF2E1B1B).copy(alpha = 0.8f)
     
-    val accentColor = if (isGranted) Color(0xFF4CAF50) else Color(0xFFF44336)
+    val containerColor = if (isGranted) 
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+    else 
+        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f)
+    
+    val accentColor = if (isGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+    val onSurface = MaterialTheme.colorScheme.onSurface
     
     Card(
         shape = RoundedCornerShape(24.dp),
@@ -288,7 +291,7 @@ fun RootStatusCard(
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -310,24 +313,38 @@ fun RootStatusCard(
                 Text(
                     text = if (isGranted) "Root Status: Granted" else "Root Status: Not Granted",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White
+                    color = onSurface
                 )
                 Text(
-                    text = if (isGranted) "Superuser access active" else "Please grant root access",
+                    text = if (isGranted) "ᕙ(  •̀ ᗜ •́  )ᕗ" else "Please grant root access",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = onSurface.copy(alpha = 0.7f)
                 )
             }
 
             if (onRefresh != null) {
-                TextButton(
-                    onClick = onRefresh,
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color.White.copy(alpha = 0.8f))
+                FilledTonalButton(
+                    onClick = { if (!isChecking) onRefresh() },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = Color.Black.copy(alpha = 0.25f),
+                        contentColor = onSurface
+                    ),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.height(40.dp)
                 ) {
-                    Text(
-                        text = "Check",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                    )
+                    if (isChecking) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = onSurface,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = "Check",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
                 }
             }
         }

@@ -39,6 +39,7 @@ fun SettingsScreen(
 
         RootStatusCard(
             status = state.rootStatus,
+            isChecking = state.isCheckingRoot,
             onRefresh = onRefreshRoot
         )
 

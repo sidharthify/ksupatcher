@@ -99,6 +99,8 @@ fun KsuPatcherNavGraph(
                 OtaScreen(
                     otaState = state.otaState,
                     rootStatus = state.rootStatus,
+                    variant = state.patchState.variant,
+                    onVariantSelected = { viewModel.selectVariant(it) },
                     onRunOta = { viewModel.runOtaPatch() },
                     onResetOta = { viewModel.resetOta() },
                     onReboot = { viewModel.rebootNow() }

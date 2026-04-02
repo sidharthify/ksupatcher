@@ -30,15 +30,19 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ksupatcher.ui.components.AppStatusCard
+import com.ksupatcher.ui.components.AppActionTile
+import com.ksupatcher.ui.components.AppStepHeader
+import com.ksupatcher.viewmodel.KsuVariant
 import com.ksupatcher.viewmodel.OtaPhase
 import com.ksupatcher.viewmodel.OtaState
-
 import com.ksupatcher.viewmodel.RootStatus
 
 @Composable
 fun OtaScreen(
     otaState: OtaState,
     rootStatus: RootStatus,
+    variant: KsuVariant,
+    onVariantSelected: (KsuVariant) -> Unit,
     onRunOta: () -> Unit,
     onResetOta: () -> Unit,
     onReboot: () -> Unit
@@ -58,7 +62,7 @@ fun OtaScreen(
     ) {
         Spacer(modifier = Modifier.height(32.dp))
         Text(
-            text = "OTA Root Patch",
+            text = "Root OTA",
             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -103,6 +107,29 @@ fun OtaScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                     )
                 }
+            }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            AppStepHeader(number = "01", title = "Variant Selection")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                AppActionTile(
+                    title = "KernelSU",
+                    drawableRes = com.ksupatcher.R.drawable.ic_ksu_logo,
+                    selected = variant == KsuVariant.KSU,
+                    onClick = { onVariantSelected(KsuVariant.KSU) },
+                    modifier = Modifier.weight(1f)
+                )
+                AppActionTile(
+                    title = "KernelSU-Next",
+                    drawableRes = com.ksupatcher.R.drawable.ic_ksun_logo,
+                    selected = variant == KsuVariant.KSUN,
+                    onClick = { onVariantSelected(KsuVariant.KSUN) },
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
 
@@ -156,12 +183,37 @@ fun OtaScreen(
                     )
                 }
             } else {
-                OutlinedButton(
-                    onClick = onResetOta,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Text("Clear / Reset", fontWeight = FontWeight.SemiBold)
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    AnimatedVisibility(
+                        visible = otaState.rebootRequired,
+                        enter = expandVertically(),
+                        exit = shrinkVertically()
+                    ) {
+                        Button(
+                            onClick = onReboot,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            )
+                        ) {
+                            Text(
+                                "Reboot Now",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = onResetOta,
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Text("Clear / Reset", fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
