@@ -806,7 +806,6 @@ class MainViewModel(
             val initBootDevice = "/dev/block/by-name/init_boot$targetSlot"
             val bootDevice = "/dev/block/by-name/boot$targetSlot"
             val blockDevice = try {
-                appendLog("$ [ -e $initBootDevice ]")
                 val hasInitBoot = RootShell.run("[ -e $initBootDevice ] && echo yes || echo no").trim()
                 if (hasInitBoot == "yes") {
                     appendLog("init_boot partition detected.")
@@ -877,9 +876,13 @@ class MainViewModel(
             setPhase(OtaPhase.FLASHING)
             appendLog("Flashing to partition: $blockDevice...")
             try {
-                // make block device writable before flashing
-                appendLog("$ blockdev --setrw $blockDevice")
-                RootShell.run("blockdev --setrw $blockDevice")
+                // harden block device access
+                val roCheck = RootShell.run("blockdev --getro $blockDevice").trim()
+                if (roCheck == "1") {
+                    appendLog("$ blockdev --setrw $blockDevice")
+                    RootShell.run("blockdev --setrw $blockDevice")
+                }
+                
                 appendLog("$ dd if=${patchedImg.absolutePath} of=$blockDevice bs=4096")
                 RootShell.run("dd if=${patchedImg.absolutePath} of=$blockDevice bs=4096")
             } catch (e: Throwable) {
