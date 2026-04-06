@@ -47,7 +47,8 @@ fun PatchScreen(
     onRunPatch: () -> Unit,
     onRunLkm: () -> Unit,
     onResetInstall: () -> Unit,
-    onReboot: () -> Unit
+    onReboot: () -> Unit,
+    onNavigateToSettings: () -> Unit
 ) {
     val bootPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -74,6 +75,15 @@ fun PatchScreen(
             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onBackground
         )
+
+        state.appUpdateInfo?.let { info ->
+            if (info.isUpdateAvailable) {
+                Spacer(modifier = Modifier.height(16.dp))
+                UpdateNotificationCard(
+                    onClick = onNavigateToSettings
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -428,3 +438,33 @@ fun FileSelector(
     }
 }
 
+@Composable
+fun UpdateNotificationCard(onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+        ),
+        modifier = Modifier.fillMaxWidth(),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                Icons.Filled.SystemUpdate,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(24.dp)
+            )
+            Text(
+                text = "Update is available, click to upgrade!",
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+    }
+}

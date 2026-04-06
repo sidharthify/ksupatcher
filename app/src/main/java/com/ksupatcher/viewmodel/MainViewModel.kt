@@ -120,7 +120,7 @@ class MainViewModel(
             }
         }
         refreshRootStatus()
-        refreshVersion()
+        refreshVersion(isAutoCheck = true)
     }
 
     fun refreshRootStatus() {
@@ -133,7 +133,7 @@ class MainViewModel(
         }
     }
 
-    fun refreshVersion() {
+    fun refreshVersion(isAutoCheck: Boolean = false) {
         _state.update { it.copy(isCheckingVersion = true, versionError = null, appUpdateError = null) }
         viewModelScope.launch {
             val currentBuildHash = BuildConfig.VERSION_NAME.trim()
@@ -143,10 +143,11 @@ class MainViewModel(
                 currentBuildHash = currentBuildHash
             )
             _state.update { current ->
+                val error = if (isAutoCheck) null else result.exceptionOrNull()?.message
                 current.copy(
                     isCheckingVersion = false,
                     appUpdateInfo = result.getOrNull(),
-                    versionError = result.exceptionOrNull()?.message
+                    versionError = error
                 )
             }
         }

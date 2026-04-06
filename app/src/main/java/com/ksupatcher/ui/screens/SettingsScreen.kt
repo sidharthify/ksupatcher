@@ -1,5 +1,6 @@
 package com.ksupatcher.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.style.TextDecoration
 import com.ksupatcher.ui.components.RootStatusCard
 import com.ksupatcher.viewmodel.UiState
 
@@ -113,21 +116,35 @@ fun SettingsScreen(
                     }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                    InfoRow(label = "Current Build", value = info.currentBuildHash)
-                    InfoRow(label = "Latest Release", value = info.latestReleaseHash)
+                    InfoRow(
+                        label = "Current Build", 
+                        value = info.currentBuildHash,
+                        valueColor = MaterialTheme.colorScheme.onSurface
+                    )
+                    InfoRow(
+                        label = "Latest Release", 
+                        value = info.latestReleaseHash,
+                        valueColor = MaterialTheme.colorScheme.onSurface
+                    )
                     InfoRow(
                         label = "Status",
                         value = updateStatus,
                         valueColor = updateStatusColor
                     )
                     info.publishedAt?.let {
-                        InfoRow(label = "Published", value = it)
+                        InfoRow(
+                            label = "Published", 
+                            value = it,
+                            valueColor = MaterialTheme.colorScheme.onSurface
+                        )
                     }
-                    info.releaseUrl?.let {
+                    info.releaseUrl?.let { url ->
+                        val uriHandler = LocalUriHandler.current
                         InfoRow(
                             label = "Release URL",
-                            value = it,
-                            valueColor = MaterialTheme.colorScheme.primary
+                            value = "Open",
+                            valueColor = MaterialTheme.colorScheme.primary,
+                            onClick = { uriHandler.openUri(url) }
                         )
                     }
 
@@ -206,9 +223,11 @@ fun InfoRow(label: String, value: String) {
 }
 
 @Composable
-fun InfoRow(label: String, value: String, valueColor: Color) {
+fun InfoRow(label: String, value: String, valueColor: Color, onClick: (() -> Unit)? = null) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -221,7 +240,8 @@ fun InfoRow(label: String, value: String, valueColor: Color) {
             text = value,
             style = MaterialTheme.typography.bodyMedium,
             color = valueColor,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            textDecoration = if (onClick != null) TextDecoration.Underline else null
         )
     }
 }

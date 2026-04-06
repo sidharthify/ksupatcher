@@ -91,7 +91,17 @@ fun KsuPatcherNavGraph(
                     onRunPatch = { viewModel.runPatch() },
                     onRunLkm = { viewModel.runLkmUpdate() },
                     onResetInstall = { viewModel.resetInstall() },
-                    onReboot = { viewModel.rebootNow() }
+                    onReboot = { viewModel.rebootNow() },
+                    onNavigateToSettings = {
+                        navController.navigate("settings") {
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                        viewModel.refreshVersion()
+                    }
                 )
             }
             composable("ota") {
