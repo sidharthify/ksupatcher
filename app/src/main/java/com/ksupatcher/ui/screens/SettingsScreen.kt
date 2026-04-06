@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextDecoration
 import com.ksupatcher.ui.components.RootStatusCard
 import com.ksupatcher.viewmodel.UiState
+import com.ksupatcher.util.DateUtils
 
 @Composable
 fun SettingsScreen(
@@ -98,6 +99,15 @@ fun SettingsScreen(
                     }
                 }
 
+                state.lastVersionCheck?.let { lastCheck ->
+                    Text(
+                        text = "Last checked: ${DateUtils.formatToPlainEnglish(lastCheck)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+
                 state.versionError?.let { err ->
                     Text(
                         text = err,
@@ -134,7 +144,7 @@ fun SettingsScreen(
                     info.publishedAt?.let {
                         InfoRow(
                             label = "Published", 
-                            value = it,
+                            value = DateUtils.formatToPlainEnglish(it),
                             valueColor = MaterialTheme.colorScheme.onSurface
                         )
                     }

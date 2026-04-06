@@ -31,6 +31,7 @@ import android.os.SystemClock
 import android.provider.MediaStore
 import java.security.MessageDigest
 import java.util.Locale
+import java.time.Instant
 
 enum class KsuVariant { KSU, KSUN }
 enum class InstallMethod { PATCH, LKM }
@@ -67,6 +68,7 @@ data class UiState(
     val appUpdateError: String? = null,
     val appUpdateInfo: AppUpdateInfo? = null,
     val versionError: String? = null,
+    val lastVersionCheck: String? = null,
     val patchState: PatchState = PatchState(),
     val otaState: OtaState = OtaState(),
     val rootStatus: RootStatus = RootStatus.UNKNOWN,
@@ -147,7 +149,8 @@ class MainViewModel(
                 current.copy(
                     isCheckingVersion = false,
                     appUpdateInfo = result.getOrNull(),
-                    versionError = error
+                    versionError = error,
+                    lastVersionCheck = Instant.now().toString()
                 )
             }
         }
