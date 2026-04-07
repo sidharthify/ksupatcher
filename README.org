@@ -50,9 +50,9 @@ Ksupatcher is a simple, native tool for managing KernelSU and KernelSU-Next dire
 2. In the *Install* tab, select *Patch Boot Image*.
 3. Select your file and tap *Start Patching*.
 4. Move the patched file from your Downloads folder to a PC and flash via fastboot:
-   #+BEGIN_SRC bash
-   fastboot flash boot boot-patched.img
-   #+END_SRC
+#+BEGIN_SRC shell
+fastboot flash boot boot-patched.img
+#+END_SRC
 
 ** Method 3: Post-OTA Flash
 
